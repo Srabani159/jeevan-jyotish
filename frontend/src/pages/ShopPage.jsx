@@ -6,6 +6,7 @@ import yantraImage from "../assets/content/Products/Navgrah.jpg";
 import rudrakshaImage from "../assets/content/Products/Rudhrakhsa.jpg";
 import { Chakra, Stars } from "../components/astrology/AstroEffects.jsx";
 import SiteLayout from "../components/layout/SiteLayout.jsx";
+import { phoneHref, useContact } from "../context/ContactContext.jsx";
 
 const PRODUCTS = [
   {
@@ -87,6 +88,8 @@ function ShopHero({ product }) {
 }
 
 function ShopCatalog() {
+  const { phone } = useContact();
+
   return (
     <>
       <section className="shop-catalog" aria-labelledby="shop-catalog-title">
@@ -123,13 +126,15 @@ function ShopCatalog() {
         <Stars count={25} />
         <h2 id="shop-contact-title">Looking for guidance?</h2>
         <p>Contact us to discuss an item and whether it suits your needs.</p>
-        <a className="btn" href="tel:+917008259050">Call +91-7008259050</a>
+        <a className="btn" href={phoneHref(phone)}>Call {phone}</a>
       </section>
     </>
   );
 }
 
 function ShopProductDetail({ product }) {
+  const { phone, email } = useContact();
+
   return (
     <>
       <section className="shop-detail-section" aria-labelledby="shop-detail-title">
@@ -154,11 +159,11 @@ function ShopProductDetail({ product }) {
             <div className="shop-detail-actions">
               <a
                 className="btn"
-                href={`mailto:acharyajayantji@gmail.com?subject=${encodeURIComponent(`Shop enquiry: ${product.title}`)}`}
+                href={`mailto:${email}?subject=${encodeURIComponent(`Shop enquiry: ${product.title}`)}`}
               >
                 Enquire about this item
               </a>
-              <a className="shop-call-link" href="tel:+917008259050">Call us</a>
+              <a className="shop-call-link" href={phoneHref(phone)}>Call us</a>
             </div>
           </div>
         </article>

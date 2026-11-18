@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import rishiImage from "../../assets/rishi.png";
 import { Chakra, Stars } from "../astrology/AstroEffects.jsx";
+import { phoneHref, useContact } from "../../context/ContactContext.jsx";
 
 const OTHER_SERVICES = [
   "Navgraha Shanti",
@@ -22,6 +23,7 @@ const QUICK_LINKS = [
 export default function SiteFooter() {
   const appointmentPath = "/appointment";
   const galleryPath = "/gallery";
+  const { phone, email, address } = useContact();
 
   return (
     <footer className="site-footer">
@@ -53,15 +55,19 @@ export default function SiteFooter() {
         </div>
         <div className="footer-column footer-contact">
           <h2>Get In Touch</h2>
-          <p><span aria-hidden="true">⌖</span> New Amalipali, Sundargarh, 770001, Odisha</p>
-          <a href="mailto:acharyajayantji@gmail.com"><span aria-hidden="true">@</span> acharyajayantji@gmail.com</a>
-          <a href="tel:+917008259050"><span aria-hidden="true">☎</span> +91-7008259050</a>
+          <p><span aria-hidden="true">⌖</span> {address}</p>
+          <a href={`mailto:${email}`}><span aria-hidden="true">@</span> {email}</a>
+          <a href={phoneHref(phone)}><span aria-hidden="true">☎</span> {phone}</a>
           <Link to={galleryPath}><span aria-hidden="true">▧</span> Gallery</Link>
         </div>
       </div>
-      <div className="footer-bottom">
-        © {new Date().getFullYear()} Jeevan Jyotish. All rights reserved.
-      </div>
+    <div className="footer-bottom">
+  <p>© {new Date().getFullYear()} Jeevan Jyotish. All rights reserved.</p>
+  <p>
+    For Website Development, Contact:{" "}
+    <a href="tel:8249752938">8249752938</a>
+  </p>
+</div>
     </footer>
   );
 }

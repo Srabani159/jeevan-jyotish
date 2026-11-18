@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Chakra, Stars } from "../components/astrology/AstroEffects.jsx";
 import SiteLayout from "../components/layout/SiteLayout.jsx";
+import { apiRequest } from "../lib/api.js";
+import { phoneHref, useContact } from "../context/ContactContext.jsx";
 import partnerImage from "../assets/RJ.jpeg";
 
 const SERVICE_OPTIONS = [
@@ -53,24 +55,49 @@ const CONSULTATION_TOPICS = [
 
 function AppointmentForm() {
   const [declarationAccepted, setDeclarationAccepted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submissionMessage, setSubmissionMessage] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  const handleSubmit = (event) => {
+  useEffect(() => {
+    if (!showSuccess) return undefined;
+    const onKey = (event) => event.key === "Escape" && setShowSuccess(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showSuccess]);
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const name = formData.get("name");
-    const subject = `Appointment request - ${name}`;
-    const body = [
-      `Name: ${name}`,
-      `Email: ${formData.get("email")}`,
-      `Mobile: ${formData.get("mobile")}`,
-      `Gender: ${formData.get("gender")}`,
-      `Service: ${formData.get("service")}`,
-      `Date of birth: ${formData.get("dob")}`,
-      `Address: ${formData.get("address") || "Not provided"}`,
-      `Reason for appointment: ${formData.get("reason") || "Not provided"}`,
-    ].join("\n");
+    if (submitting) return;
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    setSubmitting(true);
+    setSubmissionMessage(null);
 
-    window.location.href = `mailto:acharyajayantji@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    try {
+      await apiRequest("enquiries", {
+        method: "POST",
+        body: {
+          name: formData.get("name"),
+          email: formData.get("email"),
+          phone: formData.get("mobile"),
+          gender: formData.get("gender"),
+          service: formData.get("service"),
+          dateOfBirth: formData.get("dob"),
+          address: formData.get("address"),
+          reason: formData.get("reason"),
+          declarationAccepted,
+        },
+      });
+      form.reset();
+      setDeclarationAccepted(false);
+      setSubmissionMessage({ type: "success", text: "Thank you. Your enquiry has been received, and our team will be in touch." });
+      setShowSuccess(true);
+    } catch (error) {
+      setSubmissionMessage({ type: "error", text: error.message });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -78,17 +105,17 @@ function AppointmentForm() {
       <div className="appointment-form-heading">
         <span className="section-kicker">Private consultation request</span>
         <h2>Make an appointment</h2>
-        <p>Share a few details so we can prepare for your consultation.</p>
+        <p>Share a few details so our team can follow up about your consultation.</p>
       </div>
 
       <div className="appointment-fields">
         <label className="appointment-field">
           <span>Name <b aria-hidden="true">*</b></span>
-          <input autoComplete="name" name="name" placeholder="Your full name" required />
+          <input autoComplete="name" maxLength={120} name="name" placeholder="Your full name" required />
         </label>
         <label className="appointment-field">
           <span>Email <b aria-hidden="true">*</b></span>
-          <input autoComplete="email" name="email" type="email" placeholder="you@example.com" required />
+          <input autoComplete="email" maxLength={254} name="email" type="email" placeholder="you@example.com" required />
         </label>
         <label className="appointment-field">
           <span>Mobile number <b aria-hidden="true">*</b></span>
@@ -124,11 +151,11 @@ function AppointmentForm() {
         </label>
         <label className="appointment-field appointment-field--wide">
           <span>Address</span>
-          <textarea autoComplete="street-address" name="address" placeholder="Your address (optional)" rows={3} />
+          <textarea autoComplete="street-address" maxLength={2000} name="address" placeholder="Your address (optional)" rows={3} />
         </label>
         <label className="appointment-field appointment-field--wide">
           <span>Reason for appointment</span>
-          <textarea name="reason" placeholder="How can we help? (optional)" rows={4} />
+          <textarea maxLength={4000} name="reason" placeholder="How can we help? (optional)" rows={4} />
         </label>
       </div>
 
@@ -140,23 +167,41 @@ function AppointmentForm() {
           type="checkbox"
         />
         <span>
-          I understand that consultation suggestions are for guidance, and I am
-          responsible for my own decisions and outcomes.
+          I consent to Jeevan Jyotish storing the details above, including
+          my date of birth and any optional information, so the team can respond
+          to my enquiry. I understand consultation suggestions are for guidance.
         </span>
       </label>
 
-      <button className="btn appointment-submit" type="submit">
-        Prepare appointment email <span aria-hidden="true">→</span>
+      <button className="btn appointment-submit" type="submit" disabled={submitting}>
+        {submitting ? "Sending enquiry…" : "Send appointment request"} {!submitting && <span aria-hidden="true">→</span>}
       </button>
-      <p className="appointment-form-note">
-        Submitting opens your email app with a draft for you to review and send.
-        This page does not store your form details.
+      <p className={`appointment-form-note${submissionMessage ? ` is-${submissionMessage.type}` : ""}`} aria-live="polite">
+        {submissionMessage?.text || "Your enquiry will be available to authorized administrators for follow-up. Optional fields may be left blank."}
       </p>
+      {showSuccess && (
+        <div className="appointment-success-overlay" onClick={() => setShowSuccess(false)}>
+          <div
+            className="appointment-success-modal"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="appointment-success-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <span className="appointment-success-icon" aria-hidden="true">✓</span>
+            <h3 id="appointment-success-title">Appointment request sent!</h3>
+            <p>Thank you. Your request has been received and our team will contact you shortly.</p>
+            <button type="button" className="btn" autoFocus onClick={() => setShowSuccess(false)}>Done</button>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
 
 export default function AppointmentPage() {
+  const { phone, email, address } = useContact();
+
   return (
     <SiteLayout className="service-page appointment-page">
       <main>
@@ -176,9 +221,9 @@ export default function AppointmentPage() {
               Request a consultation
             </a>
             <div className="appointment-hero-contact">
-              <a href="tel:+918417053550">Call +91 84170 53550</a>
+              <a href={phoneHref(phone)}>Call {phone}</a>
               <span aria-hidden="true">✦</span>
-              <a href="mailto:acharyajayantji@gmail.com">Email us</a>
+              <a href={`mailto:${email}`}>Email us</a>
             </div>
           </div>
         </section>
@@ -195,17 +240,17 @@ export default function AppointmentPage() {
                 be thoughtful, personal and respectful.
               </p>
               <div className="appointment-contact-details">
-                <a href="tel:+918417053550">
+                <a href={phoneHref(phone)}>
                   <span className="appointment-detail-icon" aria-hidden="true">☎</span>
-                  <span><small>Call us</small>+91-8417053550</span>
+                  <span><small>Call us</small>{phone}</span>
                 </a>
-                <a href="mailto:acharyajayantji@gmail.com">
+                <a href={`mailto:${email}`}>
                   <span className="appointment-detail-icon" aria-hidden="true">@</span>
-                  <span><small>Email</small>acharyajayantji@gmail.com</span>
+                  <span><small>Email</small>{email}</span>
                 </a>
                 <div>
                   <span className="appointment-detail-icon" aria-hidden="true">⌖</span>
-                  <span><small>Visit us</small>New Amlipali, Sundargarh, Odisha 770001</span>
+                  <span><small>Visit us</small>{address}</span>
                 </div>
               </div>
               <div className="appointment-contact-note">

@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { phoneHref, useContact } from "../../context/ContactContext.jsx";
 
 const MENU = [
   { title: "Home", id: "home" },
-  { title: "About Us", id: "about", path: "/astrologer" },
+  { title: "About Us", id: "about", path: "/about" },
   {
     title: "Astrology",
     items: [
@@ -55,6 +56,7 @@ function Logo({ size = 64 }) {
 export default function SiteHeader({ isHome = false }) {
   const [open, setOpen] = useState(false);
   const [submenu, setSubmenu] = useState(null);
+  const { phone, email } = useContact();
   const closeMenu = () => {
     setOpen(false);
     setSubmenu(null);
@@ -66,8 +68,8 @@ export default function SiteHeader({ isHome = false }) {
     <>
      <div className="topbar">
   <div className="topbar-inner">
-    <a href="tel:+917008259050">📞 +91-7008259050</a>
-    <a href="mailto:acharyajayantji@gmail.com">✉️ acharyajayantji@gmail.com</a>
+    <a href={phoneHref(phone)}>📞 {phone}</a>
+    <a href={`mailto:${email}`}>✉️ {email}</a>
     <span className="free">
       <span className="free-dot" />
       Free first consultation

@@ -14,6 +14,7 @@ import numerologyImage from "../assets/content/numerology_single.jpg";
 import poojaImage from "../assets/content/rudrabhishek.jpg";
 import { Chakra, Stars } from "../components/astrology/AstroEffects.jsx";
 import SiteLayout from "../components/layout/SiteLayout.jsx";
+import { phoneHref, useContact } from "../context/ContactContext.jsx";
 import { SERVICE_PAGES, ZODIAC_SIGNS } from "../data/serviceContent.js";
 
 const SERVICE_ART = {
@@ -56,6 +57,7 @@ const PALMISTRY_LINES = [
 
 export default function ServicePage() {
   const { slug } = useParams();
+  const { phone, email } = useContact();
   const service = SERVICE_PAGES[slug];
   const art = SERVICE_ART[slug];
   const [activeInfo, setActiveInfo] = useState(0);
@@ -233,7 +235,7 @@ export default function ServicePage() {
             </header>
             <div className={`service-topic-grid service-topic-grid-${slug}`}>
               {service.featureSection.cards.map((card, index) => (
-                <article className={`service-topic-card${card.image ? " has-image" : " number-card"}`} key={card.title}>
+                <article className={`service-topic-card${card.image ? " has-image" : " number-card"}`} key={card.title ?? card.number}>
                   {card.image ? (
                     <div className="service-topic-image">
                       <img src={card.image} alt={card.alt} loading="lazy" decoding="async" />
@@ -278,8 +280,8 @@ export default function ServicePage() {
         <section className="service-page-cta">
           <Stars count={35} />
           <h2>Start a conversation</h2>
-          <p>Call +91-7008259050 or email acharyajayantji@gmail.com to arrange a consultation.</p>
-          <a className="btn" href="tel:+917008259050">Call now</a>
+          <p>Call <a href={phoneHref(phone)}>{phone}</a> or email <a href={`mailto:${email}`}>{email}</a> to arrange a consultation.</p>
+          <a className="btn" href={phoneHref(phone)}>Call now</a>
         </section>
       </main>
 

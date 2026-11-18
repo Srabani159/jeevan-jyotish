@@ -3,6 +3,7 @@ import { Link, Route, Routes, useLocation, useNavigate } from "react-router-dom"
 import "./styles/site.css";
 import jayPortrait from "./assets/jay.jpg";
 import horoscopeBanner from "./assets/content/11.jpg";
+import homeVideo from "./assets/Video_J.mp4";
 import testimonial1 from "./assets/content/tm1.jpg";
 import testimonial2 from "./assets/content/tm2.jpg";
 import testimonial3 from "./assets/content/tm3.jpg";
@@ -10,12 +11,15 @@ import testimonial4 from "./assets/content/tm4.jpg";
 import testimonial5 from "./assets/content/tm5.jpeg";
 import { Chakra, FloatingIcons, Stars } from "./components/astrology/AstroEffects.jsx";
 import SiteLayout from "./components/layout/SiteLayout.jsx";
+import { ContactProvider, phoneHref, useContact } from "./context/ContactContext.jsx";
 
 const ServicePage = lazy(() => import("./pages/ServicePage.jsx"));
 const ShopPage = lazy(() => import("./pages/ShopPage.jsx"));
 const GalleryPage = lazy(() => import("./pages/GalleryPage.jsx"));
 const AppointmentPage = lazy(() => import("./pages/AppointmentPage.jsx"));
 const AstrologerPage = lazy(() => import("./pages/AstrologerPage.jsx"));
+const AboutPage = lazy(() => import("./pages/AboutPage.jsx"));
+const AdminApp = lazy(() => import("./admin/AdminApp.jsx"));
 
 // Grahas orbiting in the hero: name, orbit radius (px), duration (s), size, colour
 const GRAHAS = [
@@ -56,11 +60,26 @@ function LegacyRouteHashRedirect() {
     } else if (slug === "gallery") {
       navigate("/gallery", { replace: true });
     } else if (slug === "about") {
-      navigate("/astrologer", { replace: true });
+      navigate("/about", { replace: true });
     } else if (SERVICE_IDS.has(slug)) {
       navigate(`/services/${slug}`, { replace: true });
     }
   }, [hash, navigate]);
+
+  return null;
+}
+
+function RouteScrollManager() {
+  const { pathname, hash } = useLocation();
+
+  useEffect(() => {
+    if (!hash) {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      return;
+    }
+
+    document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView();
+  }, [pathname, hash]);
 
   return null;
 }
@@ -117,6 +136,99 @@ const TESTIMONIAL_SLIDES = Array.from(
   { length: Math.ceil(TESTIMONIALS.length / 2) },
   (_, index) => TESTIMONIALS.slice(index * 2, index * 2 + 2),
 );
+
+const COSMIC_OUTCOMES = [
+  { name: "Focus", symbol: "◎", color: "Saffron", number: 1, message: "Pick one thing that matters and give it your full attention." },
+  { name: "Joy", symbol: "☼", color: "Sunshine", number: 3, message: "Make space for something that makes you smile today." },
+  { name: "Courage", symbol: "⚡", color: "Coral", number: 5, message: "Take the first small step toward something you want." },
+  { name: "Calm", symbol: "☾", color: "Lavender", number: 7, message: "Pause, breathe, and let your next choice come from a calmer place." },
+  { name: "New ideas", symbol: "✧", color: "Emerald", number: 8, message: "Stay curious—an unexpected idea may be worth exploring." },
+  { name: "Connection", symbol: "♡", color: "Rose", number: 9, message: "Reach out to someone who makes your world feel brighter." },
+];
+
+function CosmicPick() {
+  const [rotation, setRotation] = useState(0);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [result, setResult] = useState(null);
+  const rotationRef = useRef(0);
+  const spinTimer = useRef(null);
+
+  useEffect(() => () => window.clearTimeout(spinTimer.current), []);
+
+  const spinWheel = () => {
+    if (isSpinning) return;
+
+    const resultIndex = Math.floor(Math.random() * COSMIC_OUTCOMES.length);
+    const targetAngle = (360 - resultIndex * 60) % 360;
+    const currentAngle = rotationRef.current % 360;
+    const alignment = (targetAngle - currentAngle + 360) % 360;
+    const nextRotation = rotationRef.current + 5 * 360 + alignment;
+    const outcome = COSMIC_OUTCOMES[resultIndex];
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    setResult(null);
+    setIsSpinning(true);
+    rotationRef.current = nextRotation;
+    setRotation(nextRotation);
+    spinTimer.current = window.setTimeout(() => {
+      setIsSpinning(false);
+      setResult(outcome);
+    }, reducedMotion ? 50 : 4200);
+  };
+
+  return (
+    <section className="cosmic-pick" aria-labelledby="cosmic-pick-title">
+      <Stars count={36} />
+      <div className="cosmic-pick-inner">
+        <span className="section-kicker">Ready for a little cosmic fun?</span>
+        <h2 id="cosmic-pick-title">Spin the Cosmic Wheel</h2>
+        <p className="cosmic-pick-intro">
+          Give it a spin and see what today’s universe-inspired vibe has in store.
+        </p>
+        <div className="cosmic-game">
+          <div className="cosmic-wheel-wrap">
+            <span className="cosmic-wheel-pointer" aria-hidden="true">▼</span>
+            <div
+              className={`cosmic-wheel${isSpinning ? " is-spinning" : ""}`}
+              style={{ transform: `rotate(${rotation}deg)` }}
+              aria-hidden="true"
+            >
+              {COSMIC_OUTCOMES.map((outcome, index) => (
+                <span className={`cosmic-wheel-label wheel-label-${index}`} key={outcome.name}>
+                  <span>{outcome.symbol}</span>
+                  {outcome.name}
+                </span>
+              ))}
+              <span className="cosmic-wheel-center"><span>✦</span></span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="cosmic-spin-button"
+            onClick={spinWheel}
+            disabled={isSpinning}
+          >
+            {isSpinning ? "Spinning…" : "Spin the wheel"}
+          </button>
+        </div>
+        <div className="cosmic-pick-result" aria-live="polite" aria-atomic="true" role="status">
+          {isSpinning ? (
+            <p className="cosmic-pick-hint">The stars are aligning…</p>
+          ) : result ? (
+            <>
+              <span className="cosmic-pick-result-label">Your cosmic vibe: {result.name}</span>
+              <p>{result.message}</p>
+              <span className="cosmic-pick-details">Lucky color: {result.color} <span aria-hidden="true">·</span> Lucky number: {result.number}</span>
+            </>
+          ) : (
+            <p className="cosmic-pick-hint">Your cosmic vibe, lucky color, and number will appear here.</p>
+          )}
+        </div>
+        <p className="cosmic-pick-note">A playful little game for fun—not a prediction.</p>
+      </div>
+    </section>
+  );
+}
 
 function Testimonials() {
   const [slide, setSlide] = useState(0);
@@ -240,6 +352,8 @@ function Testimonials() {
 }
 
 function HomePage() {
+  const { phone, email } = useContact();
+
   return (
     <SiteLayout className="app" isHome>
       <section id="home" className="hero">
@@ -264,6 +378,31 @@ function HomePage() {
             Horoscopes ✶ Gemstones ✶ Numerology
           </p>
           <Link className="btn" to="/appointment">Know Your Future</Link>
+        </div>
+      </section>
+
+      <CosmicPick />
+
+      <section className="home-video" aria-labelledby="home-video-title">
+        <Stars count={48} />
+        <div className="home-video-inner">
+          <div className="home-video-copy">
+            <span className="section-kicker">A glimpse of Jeevan Jyotish</span>
+            <h2 id="home-video-title">A little <span>light</span> for your journey.</h2>
+            <p>
+              Pause for a moment and discover the spirit behind our timeless
+              approach to astrology and personal guidance.
+            </p>
+            <Link className="btn" to="/appointment">Begin your journey</Link>
+          </div>
+          <figure className="home-video-frame">
+            <span className="home-video-label">Jeevan Jyotish <span aria-hidden="true">✦</span></span>
+            <video controls preload="metadata" playsInline>
+              <source src={homeVideo} type="video/mp4" />
+              Your browser does not support HTML video.
+            </video>
+            <figcaption className="visually-hidden">A video from Jeevan Jyotish</figcaption>
+          </figure>
         </div>
       </section>
 
@@ -363,7 +502,7 @@ function HomePage() {
       <section className="appt">
         <Stars count={50} />
         <h2>Book an Appointment</h2>
-        <p>Call +91-7008259050 or write to acharyajayantji@gmail.com to fix a time.</p>
+        <p>Call <a href={phoneHref(phone)}>{phone}</a> or write to <a href={`mailto:${email}`}>{email}</a> to fix a time.</p>
         <Link className="btn" to="/appointment">Make an appointment</Link>
       </section>
 
@@ -373,6 +512,7 @@ function HomePage() {
 
 function FloatingControls() {
   const { pathname } = useLocation();
+  const { phone } = useContact();
   const [promoOpen, setPromoOpen] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const previousScrollY = useRef(window.scrollY);
@@ -394,7 +534,7 @@ function FloatingControls() {
 
   return (
     <>
-      {pathname !== "/astrologer" && (
+      {pathname !== "/astrologer" && !pathname.startsWith("/admin") && (
         <aside className={`floating-promo${promoOpen ? " is-open" : " is-closed"}`} aria-label="Consultation advertisement">
           <div
             id="floating-promo-card"
@@ -417,7 +557,7 @@ function FloatingControls() {
               <p>Explore your birth chart in a one-to-one consultation.</p>
               <div className="floating-promo-actions">
                 <Link className="floating-promo-cta" to="/appointment">Let&apos;s Go</Link>
-                <a href="tel:+917008259050">Call +91-7008259050</a>
+                <a href={phoneHref(phone)}>Call {phone}</a>
               </div>
             </div>
           </div>
@@ -434,7 +574,7 @@ function FloatingControls() {
           )}
         </aside>
       )}
-      {showBackToTop && (
+      {showBackToTop && !pathname.startsWith("/admin") && (
         <button
           type="button"
           className="back-to-top"
@@ -451,21 +591,26 @@ function FloatingControls() {
 
 export default function App() {
   return (
-    <>
-      <LegacyRouteHashRedirect />
-      <Suspense fallback={<main className="service-not-found" role="status">Loading page…</main>}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/shop" element={<ShopPage />} />
-          <Route path="/shop/:productSlug" element={<ShopPage />} />
-          <Route path="/gallery" element={<GalleryPage />} />
-          <Route path="/appointment" element={<AppointmentPage />} />
-          <Route path="/astrologer" element={<AstrologerPage />} />
-          <Route path="/services/:slug" element={<ServicePage />} />
-          <Route path="*" element={<ServicePage />} />
-        </Routes>
-      </Suspense>
-      <FloatingControls />
-    </>
+    <ContactProvider>
+      <>
+        <LegacyRouteHashRedirect />
+        <RouteScrollManager />
+        <Suspense fallback={<main className="service-not-found" role="status">Loading page…</main>}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/shop" element={<ShopPage />} />
+            <Route path="/shop/:productSlug" element={<ShopPage />} />
+            <Route path="/gallery" element={<GalleryPage />} />
+            <Route path="/appointment" element={<AppointmentPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/astrologer" element={<AstrologerPage />} />
+            <Route path="/admin/*" element={<AdminApp />} />
+            <Route path="/services/:slug" element={<ServicePage />} />
+            <Route path="*" element={<ServicePage />} />
+          </Routes>
+        </Suspense>
+        <FloatingControls />
+      </>
+    </ContactProvider>
   );
 }
